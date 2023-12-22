@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+# Copyright(c) 2023 John Sanpe <sanpeqf@gmail.com>
+#
+
+obj-$(CONFIG_LKSU) := lksu.o
+lksu-y += main.o
+lksu-y += hooks.o
+lksu-y += tables.o
+lksu-y += token.o
