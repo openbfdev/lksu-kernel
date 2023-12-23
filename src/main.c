@@ -31,7 +31,7 @@ static __exit void
 lksu_exit(void)
 {
     lksu_hooks_exit();
-        lksu_token_exit();
+    lksu_token_exit();
 }
 
 module_init(lksu_init);
