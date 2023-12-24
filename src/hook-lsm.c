@@ -18,7 +18,13 @@
 static int
 lsm_file_open(struct file *file)
 {
-    return hook_open(file);
+    return hook_file_open(file);
+}
+
+static void
+lsm_file_free(struct file *file)
+{
+    hook_file_free(file);
 }
 
 static int
@@ -39,6 +45,7 @@ lsm_task_prctl(int option, unsigned long arg2, unsigned long arg3,
 static struct security_hook_list
 lsm_hooks[] = {
     LSM_HOOK_INIT(file_open, lsm_file_open),
+    LSM_HOOK_INIT(file_free_security, lsm_file_free),
     LSM_HOOK_INIT(task_prctl, lsm_task_prctl),
 };
 
