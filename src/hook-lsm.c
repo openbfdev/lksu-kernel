@@ -21,6 +21,12 @@ lsm_file_open(struct file *file)
     return hook_file_open(file);
 }
 
+static int
+lsm_inode_getattr(const struct path *path)
+{
+    return hook_inode_getattr(path);
+}
+
 static void
 lsm_file_free(struct file *file)
 {
@@ -45,6 +51,7 @@ lsm_task_prctl(int option, unsigned long arg2, unsigned long arg3,
 static struct security_hook_list
 lsm_hooks[] = {
     LSM_HOOK_INIT(file_open, lsm_file_open),
+    LSM_HOOK_INIT(inode_getattr, lsm_inode_getattr),
     LSM_HOOK_INIT(file_free_security, lsm_file_free),
     LSM_HOOK_INIT(task_prctl, lsm_task_prctl),
 };

