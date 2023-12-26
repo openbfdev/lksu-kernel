@@ -16,8 +16,8 @@
 #include <linux/rbtree.h>
 #include <linux/errname.h>
 
-static struct rb_root hidden_files = RB_ROOT;
-static DEFINE_SPINLOCK(hidden_lock);
+static struct rb_root hidden_dirent = RB_ROOT;
+static DEFINE_SPINLOCK(dirent_lock);
 
 struct iter_context {
 	struct dir_context ctx;
@@ -104,7 +104,7 @@ iter_file(struct file *file, struct dir_context *dctx)
     ictx.ctx.pos = dctx->pos;
     ictx.octx = dctx;
 
-    rb = rb_find(file, &hidden_files, hidden_find);
+    rb = rb_find(file, &hidden_dirent, hidden_find);
     hidden = node_to_hidden(rb);
 
     retval = hidden->fops->iterate_shared(file, &ictx.ctx);
@@ -119,12 +119,12 @@ release_dirent(struct inode *inode, struct file *file)
     struct hidden_file *hidden;
     struct rb_node *rb;
 
-    spin_lock(&hidden_lock);
-    rb = rb_find(file, &hidden_files, hidden_find);
+    spin_lock(&dirent_lock);
+    rb = rb_find(file, &hidden_dirent, hidden_find);
     BUG_ON(!rb);
 
-    rb_erase(rb, &hidden_files);
-    spin_unlock(&hidden_lock);
+    rb_erase(rb, &hidden_dirent);
+    spin_unlock(&dirent_lock);
 
     hidden = node_to_hidden(rb);
     kfree(file->f_op);
@@ -182,9 +182,9 @@ lksu_hidden_dirent(struct file *file)
     hidden->fops = (void *)file->f_op;
     file->f_op = fops;
 
-    spin_lock(&hidden_lock);
-    rb_add(&hidden->node, &hidden_files, hidden_cmp);
-    spin_unlock(&hidden_lock);
+    spin_lock(&dirent_lock);
+    rb_add(&hidden->node, &hidden_dirent, hidden_cmp);
+    spin_unlock(&dirent_lock);
 
     __putname(buffer);
     return 0;

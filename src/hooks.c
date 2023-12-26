@@ -18,13 +18,16 @@
 #include <linux/rbtree.h>
 #include <linux/errname.h>
 
-static bool enabled;
+static bool enabled __read_mostly;
 
 static int
 hook_file_open(struct file *file)
 {
     bool hidden;
     int retval;
+
+    if (!enabled)
+        return 0;
 
     retval = lksu_hidden_file(file, &hidden);
     if (unlikely(retval))
@@ -42,6 +45,9 @@ hook_inode_getattr(const struct path *path)
     bool hidden;
     int retval;
 
+    if (!enabled)
+        return 0;
+
     retval = lksu_hidden_path(path, &hidden);
     if (unlikely(retval))
         return retval;
@@ -54,6 +60,9 @@ hook_inode_permission(struct inode *inode)
 {
     bool hidden;
     int retval;
+
+    if (!enabled)
+        return 0;
 
     retval = lksu_hidden_inode(inode, &hidden);
     if (unlikely(retval))
@@ -90,10 +99,12 @@ hook_control(int *retptr, struct lksu_message __user *message)
 
     switch (msg.func) {
         case LKSU_ENABLE:
+            pr_notice("module enable\n");
             enabled = true;
             break;
 
         case LKSU_DISABLE:
+            pr_notice("module disable\n");
             enabled = false;
             break;
 
