@@ -18,19 +18,34 @@
 static int
 lsm_file_open(struct file *file)
 {
+#if 1
     return hook_file_open(file);
+#else /* For debug */
+    (void)hook_file_open;
+    return 0;
+#endif
 }
 
 static int
 lsm_inode_getattr(const struct path *path)
 {
+#if 1
     return hook_inode_getattr(path);
+#else /* For debug */
+    (void)hook_inode_getattr;
+    return 0;
+#endif
 }
 
-static void
-lsm_file_free(struct file *file)
+static int
+lsm_inode_permission(struct inode *inode, int mask)
 {
-    hook_file_free(file);
+#if 1
+    return hook_inode_permission(inode);
+#else /* For debug */
+    (void)hook_inode_permission;
+    return 0;
+#endif
 }
 
 static int
@@ -52,7 +67,7 @@ static struct security_hook_list
 lsm_hooks[] = {
     LSM_HOOK_INIT(file_open, lsm_file_open),
     LSM_HOOK_INIT(inode_getattr, lsm_inode_getattr),
-    LSM_HOOK_INIT(file_free_security, lsm_file_free),
+    LSM_HOOK_INIT(inode_permission, lsm_inode_permission),
     LSM_HOOK_INIT(task_prctl, lsm_task_prctl),
 };
 
