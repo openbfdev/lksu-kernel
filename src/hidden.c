@@ -8,7 +8,7 @@
 
 #include "hooks.h"
 #include "token.h"
-#include "uapi.h"
+#include "lksu.h"
 
 #include <linux/module.h>
 #include <linux/fs.h>

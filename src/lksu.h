@@ -21,18 +21,12 @@ enum lksu_func {
 
     LKSU_GLOBAL_HIDDEN_ADD,
     LKSU_GLOBAL_HIDDEN_REMOVE,
-    LKSU_GLOBAL_PROPERTY_ADD,
-    LKSU_GLOBAL_PROPERTY_REMOVE,
+    LKSU_GLOBAL_UID_ADD,
+    LKSU_GLOBAL_UID_REMOVE,
 
     LKSU_TOKEN_ADD,
     LKSU_TOKEN_REMOVE,
     LKSU_FUNC_MAX_NR,
-};
-
-struct lksu_property {
-    __kernel_pid_t pid;
-    __kernel_uid_t uid;
-    __kernel_gid_t gid;
 };
 
 struct lksu_message {
@@ -40,8 +34,14 @@ struct lksu_message {
     enum lksu_func func;
 
     union {
-        /* LKSU_TOKEN_* */
+        /* LKSU_TOKAN_* */
         char token[LKSU_TOKEN_LEN];
+
+        /* LKSU_GLOBAL_HIDDEN_* */
+        const char *g_hidden;
+
+        /* LKSU_GLOBAL_HIDDEN_* */
+        __kernel_uid_t g_uid;
     } args;
 };
 

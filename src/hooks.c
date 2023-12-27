@@ -9,10 +9,11 @@
 #include "hooks.h"
 #include "token.h"
 #include "hidden.h"
-#include "uapi.h"
+#include "lksu.h"
 
 #include <linux/module.h>
 #include <linux/fs.h>
+#include <linux/cred.h>
 #include <linux/uaccess.h>
 #include <linux/printk.h>
 #include <linux/rbtree.h>
@@ -108,6 +109,19 @@ hook_control(int *retptr, struct lksu_message __user *message)
             enabled = false;
             break;
 
+        case LKSU_GLOBAL_HIDDEN_ADD:
+
+            break;
+
+        case LKSU_GLOBAL_HIDDEN_REMOVE:
+            break;
+
+        case LKSU_GLOBAL_UID_ADD:
+            break;
+
+        case LKSU_GLOBAL_UID_REMOVE:
+            break;
+
         case LKSU_TOKEN_ADD:
             pr_notice("token add: %*.s\n", LKSU_TOKEN_LEN, msg.args.token);
             retval = lksu_token_add(msg.args.token);
@@ -127,7 +141,7 @@ hook_control(int *retptr, struct lksu_message __user *message)
 
 failed:
     ename = errname(retval) ?: "EUNKNOW";
-    pr_warn("Illegal operation: %s\n", ename);
+    pr_warn("unverified operation: %s\n", ename);
     return false;
 }
 
