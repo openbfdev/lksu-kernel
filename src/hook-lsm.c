@@ -3,7 +3,6 @@
  * Copyright(c) 2023 John Sanpe <sanpeqf@gmail.com>
  */
 
-
 static int
 lsm_file_open(struct file *file)
 {

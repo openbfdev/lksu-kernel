@@ -6,13 +6,15 @@
 #define MODULE_NAME "lksu-hooks"
 #define pr_fmt(fmt) MODULE_NAME ": " fmt
 
+#include "lksu.h"
 #include "hooks.h"
 #include "token.h"
 #include "hidden.h"
-#include "lksu.h"
+#include "tables.h"
 
 #include <linux/module.h>
 #include <linux/fs.h>
+#include <linux/slab.h>
 #include <linux/cred.h>
 #include <linux/uaccess.h>
 #include <linux/printk.h>
@@ -42,6 +44,9 @@ hook_file_open(struct file *file)
     if (!enabled)
         return 0;
 
+    if (lksu_table_guid_check(current_uid().val))
+        return 0;
+
     retval = lksu_hidden_file(file, &hidden);
     if (unlikely(retval))
         return retval;
@@ -61,6 +66,9 @@ hook_inode_getattr(const struct path *path)
     if (!enabled)
         return 0;
 
+    if (lksu_table_guid_check(current_uid().val))
+        return 0;
+
     retval = lksu_hidden_path(path, &hidden);
     if (unlikely(retval))
         return retval;
@@ -77,6 +85,9 @@ hook_inode_permission(struct inode *inode)
     if (!enabled)
         return 0;
 
+    if (lksu_table_guid_check(current_uid().val))
+        return 0;
+
     retval = lksu_hidden_inode(inode, &hidden);
     if (unlikely(retval))
         return retval;
@@ -89,8 +100,8 @@ hook_control(int *retptr, struct lksu_message __user *message)
 {
     struct lksu_message msg;
     unsigned long length;
+    int retval = 0;
     bool verify;
-    int retval;
 
     if (!message) {
         retval = -EINVAL;
@@ -121,16 +132,43 @@ hook_control(int *retptr, struct lksu_message __user *message)
             break;
 
         case LKSU_GLOBAL_HIDDEN_ADD:
+        case LKSU_GLOBAL_HIDDEN_REMOVE: {
+            char *buffer;
+            long retlen;
 
-            break;
+            buffer = __getname();
+            if (!buffer) {
+                retval = -ENOMEM;
+                break;
+            }
 
-        case LKSU_GLOBAL_HIDDEN_REMOVE:
+            retlen = strncpy_from_user(buffer, msg.args.g_hidden, PATH_MAX);
+            if (unlikely(retlen < 0)) {
+                __putname(buffer);
+                retval = retlen;
+                break;
+            }
+
+            if (msg.func == LKSU_GLOBAL_HIDDEN_ADD) {
+                pr_notice("global file add: %s\n", buffer);
+                retval = lksu_table_gfile_add(buffer);
+            } else {
+                pr_notice("global file remove: %s\n", buffer);
+                retval = lksu_table_gfile_remove(buffer);
+            }
+
+            __putname(buffer);
             break;
+        }
 
         case LKSU_GLOBAL_UID_ADD:
+            pr_notice("global uid add: %u\n", msg.args.g_uid);
+            retval = lksu_table_guid_add(msg.args.g_uid);
             break;
 
         case LKSU_GLOBAL_UID_REMOVE:
+            pr_notice("global uid remove: %u\n", msg.args.g_uid);
+            retval = lksu_table_guid_remove(msg.args.g_uid);
             break;
 
         case LKSU_TOKEN_ADD:

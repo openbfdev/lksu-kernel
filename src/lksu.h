@@ -3,8 +3,8 @@
  * Copyright(c) 2023 John Sanpe <sanpeqf@gmail.com>
  */
 
-#ifndef _LKSU_UAPI_H_
-#define _LKSU_UAPI_H_
+#ifndef _LKSU_LKSU_H_
+#define _LKSU_LKSU_H_
 
 #include <linux/types.h>
 #include <linux/uuid.h>
@@ -45,4 +45,4 @@ struct lksu_message {
     } args;
 };
 
-#endif /* _LKSU_UAPI_H_ */
+#endif /* _LKSU_LKSU_H_ */

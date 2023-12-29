@@ -6,9 +6,9 @@
 #define MODULE_NAME "lksu-hooks"
 #define pr_fmt(fmt) MODULE_NAME ": " fmt
 
-#include "hooks.h"
-#include "token.h"
 #include "lksu.h"
+#include "hidden.h"
+#include "tables.h"
 
 #include <linux/module.h>
 #include <linux/fs.h>
@@ -225,7 +225,7 @@ lksu_hidden_file(struct file *file, bool *hidden)
         goto finish;
     }
 
-    if (!strcmp("/usr/bin/su", name))
+    if (lksu_table_gfile_check(name))
         *hidden = true;
 
 finish:
@@ -251,7 +251,7 @@ lksu_hidden_path(const struct path *path, bool *hidden)
         goto finish;
     }
 
-    if (!strcmp("/usr/bin/su", name))
+    if (lksu_table_gfile_check(name))
         *hidden = true;
 
 finish:
@@ -283,7 +283,7 @@ lksu_hidden_inode(struct inode *inode, bool *hidden)
         goto finish;
     }
 
-    if (!strcmp("/usr/bin/su", name))
+    if (lksu_table_gfile_check(name))
         *hidden = true;
 
 finish:
