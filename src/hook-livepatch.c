@@ -4,21 +4,32 @@
  */
 
 #include <linux/livepatch.h>
+#include <linux/fsnotify.h>
 
 static int
 livepatch_file_open(struct file *file)
 {
+    int retval;
+
 #if 1
-    return hook_file_open(file);
+    retval = hook_file_open(file);
 #else /* For debug */
     (void)hook_file_open;
-    return 0;
+    retval = 0;
 #endif
+
+    if (retval)
+        return retval;
+
+    return fsnotify_perm(file, MAY_OPEN);
 }
 
 static int
 livepatch_inode_getattr(const struct path *path)
 {
+    if (unlikely(IS_PRIVATE(d_backing_inode(path->dentry))))
+        return 0;
+
 #if 1
     return hook_inode_getattr(path);
 #else /* For debug */
@@ -30,6 +41,9 @@ livepatch_inode_getattr(const struct path *path)
 static int
 livepatch_inode_permission(struct inode *inode, int mask)
 {
+    if (unlikely(IS_PRIVATE(inode)))
+        return 0;
+
 #if 1
     return hook_inode_permission(inode);
 #else /* For debug */
