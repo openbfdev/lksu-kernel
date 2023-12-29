@@ -5,16 +5,6 @@
 
 #include <linux/lsm_hooks.h>
 
-#define LSM_RET_DEFAULT(NAME) (NAME##_default)
-#define DECLARE_LSM_RET_DEFAULT_void(DEFAULT, NAME)
-#define DECLARE_LSM_RET_DEFAULT_int(DEFAULT, NAME) \
-    static const int __maybe_unused LSM_RET_DEFAULT(NAME) = (DEFAULT);
-#define LSM_HOOK(RET, DEFAULT, NAME, ...) \
-    DECLARE_LSM_RET_DEFAULT_##RET(DEFAULT, NAME)
-
-#include <linux/lsm_hook_defs.h>
-#undef LSM_HOOK
-
 static int
 lsm_file_open(struct file *file)
 {

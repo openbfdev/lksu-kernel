@@ -17,11 +17,22 @@
 #include <linux/uaccess.h>
 #include <linux/printk.h>
 #include <linux/rbtree.h>
+#include <linux/version.h>
 #include <linux/errname.h>
+
+#define LSM_RET_DEFAULT(NAME) (NAME##_default)
+#define DECLARE_LSM_RET_DEFAULT_void(DEFAULT, NAME)
+#define DECLARE_LSM_RET_DEFAULT_int(DEFAULT, NAME) \
+    static const int __maybe_unused LSM_RET_DEFAULT(NAME) = (DEFAULT);
+#define LSM_HOOK(RET, DEFAULT, NAME, ...) \
+    DECLARE_LSM_RET_DEFAULT_##RET(DEFAULT, NAME)
+
+#include <linux/lsm_hook_defs.h>
+#undef LSM_HOOK
 
 static bool enabled __read_mostly;
 
-static int
+static inline int
 hook_file_open(struct file *file)
 {
     bool hidden;
@@ -40,7 +51,7 @@ hook_file_open(struct file *file)
     return lksu_hidden_dirent(file);
 }
 
-static int
+static inline int
 hook_inode_getattr(const struct path *path)
 {
     bool hidden;
@@ -56,7 +67,7 @@ hook_inode_getattr(const struct path *path)
     return hidden ? -ENOENT : 0;
 }
 
-static int
+static inline int
 hook_inode_permission(struct inode *inode)
 {
     bool hidden;
@@ -72,12 +83,11 @@ hook_inode_permission(struct inode *inode)
     return hidden ? -ENOENT : 0;
 }
 
-static bool
+static inline bool
 hook_control(int *retptr, struct lksu_message __user *message)
 {
     struct lksu_message msg;
     unsigned long length;
-    const char *ename;
     bool verify;
     int retval;
 
@@ -140,8 +150,14 @@ hook_control(int *retptr, struct lksu_message __user *message)
     return true;
 
 failed:
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 8)
+    const char *ename;
     ename = errname(retval) ?: "EUNKNOW";
     pr_warn("unverified operation: %s\n", ename);
+#else
+    pr_warn("unverified operation: %d\n", retval);
+#endif
+
     return false;
 }
 

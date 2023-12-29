@@ -138,7 +138,6 @@ lksu_token_init(void)
     if (!token_cache)
         return -ENOMEM;
 
-    spin_lock_init(&token_lock);
     return 0;
 }
 

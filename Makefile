@@ -8,7 +8,7 @@ linux ?= /lib/modules/$(shell uname -r)/build
 src := $(shell pwd)/src
 
 all:
-	$(Q) $(make) -C $(linux) M=$(src) modules
+	$(Q) $(make) -C $(linux) M=$(src) CONFIG_LKSU=m modules
 PHONY += all
 
 clean:

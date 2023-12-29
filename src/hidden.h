@@ -21,4 +21,10 @@ lksu_hidden_path(const struct path *path, bool *hidden);
 extern int
 lksu_hidden_inode(struct inode *inode, bool *hidden);
 
+extern int
+lksu_hidden_init(void);
+
+extern int
+lksu_hidden_exit(void);
+
 #endif /* _LKSU_HIDDEN_H_ */

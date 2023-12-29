@@ -8,5 +8,6 @@
 *.cmd
 *.mod
 *.mod.*
+*.ko
 *.a
 *.o

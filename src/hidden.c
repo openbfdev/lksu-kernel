@@ -104,9 +104,12 @@ iter_file(struct file *file, struct dir_context *dctx)
     ictx.ctx.pos = dctx->pos;
     ictx.octx = dctx;
 
+    spin_lock(&dirent_lock);
     rb = rb_find(file, &hidden_dirent, hidden_find);
-    hidden = node_to_hidden(rb);
+    BUG_ON(!rb);
+    spin_unlock(&dirent_lock);
 
+    hidden = node_to_hidden(rb);
     retval = hidden->fops->iterate_shared(file, &ictx.ctx);
     dctx->pos = ictx.ctx.pos;
 
@@ -275,4 +278,16 @@ lksu_hidden_inode(struct inode *inode, bool *hidden)
 finish:
     __putname(buffer);
     return retval;
+}
+
+int
+lksu_hidden_init(void)
+{
+    return 0;
+}
+
+void
+lksu_hidden_exit(void)
+{
+
 }

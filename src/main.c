@@ -8,6 +8,8 @@
 
 #include "hooks.h"
 #include "token.h"
+#include "hidden.h"
+
 #include <linux/module.h>
 #include <linux/printk.h>
 
@@ -17,6 +19,10 @@ lksu_init(void)
     int retval;
 
     retval = lksu_token_init();
+    if (retval)
+        return retval;
+
+    retval = lksu_hidden_init();
     if (retval)
         return retval;
 
@@ -31,6 +37,7 @@ static __exit void
 lksu_exit(void)
 {
     lksu_hooks_exit();
+    lksu_hidden_exit();
     lksu_token_exit();
 }
 
