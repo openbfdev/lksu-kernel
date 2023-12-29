@@ -12,6 +12,8 @@
 
 #include <linux/module.h>
 #include <linux/fs.h>
+#include <linux/slab.h>
+#include <linux/version.h>
 #include <linux/printk.h>
 #include <linux/rbtree.h>
 #include <linux/errname.h>
@@ -75,7 +77,13 @@ hidden_find(const void *key, const struct rb_node *node)
     return (void *)hidden->file < key ? -1 : 1;
 }
 
-static bool
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 0, 0)
+# define FILLDIR_RET bool
+#else
+# define FILLDIR_RET int
+#endif
+
+static FILLDIR_RET
 filldir(struct dir_context *ctx, const char *name, int namlen,
 		loff_t offset, u64 ino, unsigned int d_type)
 {
