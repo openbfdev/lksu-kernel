@@ -3,7 +3,6 @@
  * Copyright(c) 2023 John Sanpe <sanpeqf@gmail.com>
  */
 
-#include <linux/lsm_hooks.h>
 
 static int
 lsm_file_open(struct file *file)
@@ -72,5 +71,5 @@ hooks_lsm_init(void)
 static void
 hooks_lsm_exit(void)
 {
-    /* Nothing */
+    /* Never reached */
 }

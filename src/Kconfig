@@ -5,3 +5,22 @@
 
 config LKSU
 	tristate "Linux Kernel SU Support"
+	default y
+
+choice
+	prompt "Select hook function"
+	default LKSU_HOOK_LSM
+
+config LKSU_HOOK_LSM
+	bool "Linux Security Module"
+	depends on LKSU=y
+
+config LKSU_HOOK_LIVEPATCH
+	bool "Live Patch"
+	depends on (LKSU=m) && LIVEPATCH
+
+config LKSU_HOOK_KPROBE
+	bool "Kprobe"
+	depends on KRETPROBE
+
+endchoice

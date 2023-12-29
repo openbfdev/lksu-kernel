@@ -18,6 +18,7 @@
 #include <linux/printk.h>
 #include <linux/rbtree.h>
 #include <linux/version.h>
+#include <linux/lsm_hooks.h>
 #include <linux/errname.h>
 
 #define LSM_RET_DEFAULT(NAME) (NAME##_default)
@@ -161,28 +162,36 @@ failed:
     return false;
 }
 
-#ifdef MODULE
+#if defined(CONFIG_LKSU_HOOK_LSM)
+# include "hook-lsm.c"
+#elif defined(CONFIG_LKSU_HOOK_LIVEPATCH)
+# include "hook-livepatch.c"
+#elif defined(CONFIG_LKSU_HOOK_KPROBE)
 # include "hook-kprobe.c"
 #else
-# include "hook-lsm.c"
+# error "Undefined hook function"
 #endif
 
 int __init
 lksu_hooks_init(void)
 {
-#ifdef MODULE
-    return hooks_kprobe_init();
-#else
+#if defined(CONFIG_LKSU_HOOK_LSM)
     return hooks_lsm_init();
+#elif defined(CONFIG_LKSU_HOOK_LIVEPATCH)
+    return hooks_livepatch_init();
+#else
+    return hooks_kprobe_init();
 #endif
 }
 
 void __exit
 lksu_hooks_exit(void)
 {
-#ifdef MODULE
-    hooks_kprobe_exit();
-#else
+#if defined(CONFIG_LKSU_HOOK_LSM)
     hooks_lsm_exit();
+#elif defined(CONFIG_LKSU_HOOK_LIVEPATCH)
+    hooks_livepatch_exit();
+#else
+    hooks_kprobe_exit();
 #endif
 }

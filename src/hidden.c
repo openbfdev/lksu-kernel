@@ -24,14 +24,14 @@ struct iter_context {
     struct dir_context *octx;
 };
 
-struct hidden_file {
+struct hidden_dirent {
     struct rb_node node;
     struct file *file;
     struct file_operations *fops;
 };
 
 #define node_to_hidden(ptr) \
-    rb_entry(ptr, struct hidden_file, node)
+    rb_entry(ptr, struct hidden_dirent, node)
 
 static inline char *
 inode_path(struct inode *inode, char *buffer, int len, bool *noalias)
@@ -55,7 +55,7 @@ inode_path(struct inode *inode, char *buffer, int len, bool *noalias)
 static bool
 hidden_cmp(struct rb_node *na, const struct rb_node *nb)
 {
-    const struct hidden_file *ta, *tb;
+    const struct hidden_dirent *ta, *tb;
 
     ta = node_to_hidden(na);
     tb = node_to_hidden(nb);
@@ -66,7 +66,7 @@ hidden_cmp(struct rb_node *na, const struct rb_node *nb)
 static int
 hidden_find(const void *key, const struct rb_node *node)
 {
-    const struct hidden_file *hidden;
+    const struct hidden_dirent *hidden;
 
     hidden = node_to_hidden(node);
     if (hidden->file == key)
@@ -95,7 +95,7 @@ filldir(struct dir_context *ctx, const char *name, int namlen,
 static int
 iter_file(struct file *file, struct dir_context *dctx)
 {
-    struct hidden_file *hidden;
+    struct hidden_dirent *hidden;
     struct iter_context ictx;
     struct rb_node *rb;
     int retval;
@@ -119,7 +119,7 @@ iter_file(struct file *file, struct dir_context *dctx)
 static int
 release_dirent(struct inode *inode, struct file *file)
 {
-    struct hidden_file *hidden;
+    struct hidden_dirent *hidden;
     struct rb_node *rb;
 
     spin_lock(&dirent_lock);
@@ -145,7 +145,7 @@ int
 lksu_hidden_dirent(struct file *file)
 {
     struct file_operations *fops;
-    struct hidden_file *hidden;
+    struct hidden_dirent *hidden;
     char *buffer, *name;
     int retval = 0;
 
@@ -205,6 +205,8 @@ lksu_hidden_file(struct file *file, bool *hidden)
     char *buffer, *name;
     int retval = 0;
 
+    *hidden = false;
+
     buffer = __getname();
     if (unlikely(!buffer))
         return -ENOMEM;
@@ -215,7 +217,6 @@ lksu_hidden_file(struct file *file, bool *hidden)
         goto finish;
     }
 
-    *hidden = false;
     if (!strcmp("/usr/bin/su", name))
         *hidden = true;
 
@@ -230,6 +231,8 @@ lksu_hidden_path(const struct path *path, bool *hidden)
     char *buffer, *name;
     int retval = 0;
 
+    *hidden = false;
+
     buffer = __getname();
     if (unlikely(!buffer))
         return -ENOMEM;
@@ -240,7 +243,6 @@ lksu_hidden_path(const struct path *path, bool *hidden)
         goto finish;
     }
 
-    *hidden = false;
     if (!strcmp("/usr/bin/su", name))
         *hidden = true;
 
@@ -256,11 +258,12 @@ lksu_hidden_inode(struct inode *inode, bool *hidden)
     bool noalias;
     int retval = 0;
 
+    *hidden = false;
+
     buffer = __getname();
     if (unlikely(!buffer))
         return -ENOMEM;
 
-    *hidden = false;
     name = inode_path(inode, buffer, PATH_MAX, &noalias);
     if (noalias) {
         retval = 0;
