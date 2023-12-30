@@ -98,11 +98,31 @@ hook_inode_permission(struct inode *inode)
     return hidden ? -ENOENT : 0;
 }
 
+static const char *
+hook_copy_path(const char __user *name)
+{
+    char *buffer;
+    long retlen;
+
+    buffer = __getname();
+    if (!buffer)
+        return NULL;
+
+    retlen = strncpy_from_user(buffer, name, PATH_MAX);
+    if (unlikely(retlen < 0)) {
+        __putname(buffer);
+        return NULL;
+    }
+
+    return buffer;
+}
+
 static inline bool
 hook_control(int *retptr, struct lksu_message __user *message)
 {
     struct lksu_message msg;
     unsigned long length;
+    const char *hidden;
     int retval = 0;
     bool verify;
 
@@ -135,34 +155,28 @@ hook_control(int *retptr, struct lksu_message __user *message)
             break;
 
         case LKSU_GLOBAL_HIDDEN_ADD:
-        case LKSU_GLOBAL_HIDDEN_REMOVE: {
-            char *buffer;
-            long retlen;
-
-            buffer = __getname();
-            if (!buffer) {
+            hidden = hook_copy_path(msg.args.g_hidden);
+            if (unlikely(!hidden)) {
                 retval = -ENOMEM;
                 break;
             }
 
-            retlen = strncpy_from_user(buffer, msg.args.g_hidden, PATH_MAX);
-            if (unlikely(retlen < 0)) {
-                __putname(buffer);
-                retval = retlen;
+            pr_notice("global file add: %s\n", hidden);
+            retval = lksu_table_gfile_add(hidden);
+            __putname(hidden);
+            break;
+
+        case LKSU_GLOBAL_HIDDEN_REMOVE:
+            hidden = hook_copy_path(msg.args.g_hidden);
+            if (unlikely(!hidden)) {
+                retval = -ENOMEM;
                 break;
             }
 
-            if (msg.func == LKSU_GLOBAL_HIDDEN_ADD) {
-                pr_notice("global file add: %s\n", buffer);
-                retval = lksu_table_gfile_add(buffer);
-            } else {
-                pr_notice("global file remove: %s\n", buffer);
-                retval = lksu_table_gfile_remove(buffer);
-            }
-
-            __putname(buffer);
+            pr_notice("global file remove: %s\n", hidden);
+            retval = lksu_table_gfile_remove(hidden);
+            __putname(hidden);
             break;
-        }
 
         case LKSU_GLOBAL_UID_ADD:
             pr_notice("global uid add: %u\n", msg.args.g_uid);
