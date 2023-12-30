@@ -12,6 +12,9 @@
 extern bool
 lksu_table_gfile_check(const char *name);
 
+extern bool
+lksu_table_gdirent_check(const char *name);
+
 extern int
 lksu_table_gfile_add(const char *name);
 
