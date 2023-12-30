@@ -105,7 +105,7 @@ hook_copy_path(const char __user *name)
     long retlen;
 
     buffer = __getname();
-    if (!buffer)
+    if (unlikely(!buffer))
         return NULL;
 
     retlen = strncpy_from_user(buffer, name, PATH_MAX);
@@ -126,19 +126,19 @@ hook_control(int *retptr, struct lksu_message __user *message)
     int retval = 0;
     bool verify;
 
-    if (!message) {
+    if (unlikely(!message)) {
         retval = -EINVAL;
         goto failed;
     }
 
     length = copy_from_user(&msg, message, sizeof(msg));
-    if (length) {
+    if (unlikely(length)) {
         retval = -EFAULT;
         goto failed;
     }
 
     verify = lksu_token_verify(msg.token);
-    if (!verify) {
+    if (unlikely(!verify)) {
         retval = -EACCES;
         goto failed;
     }
