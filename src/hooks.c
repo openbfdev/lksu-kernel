@@ -41,7 +41,7 @@ hook_file_open(struct file *file)
     bool hidden;
     int retval;
 
-    if (!enabled)
+    if (!READ_ONCE(enabled))
         return 0;
 
     if (lksu_table_guid_check(current_uid().val))
@@ -66,7 +66,7 @@ hook_inode_getattr(const struct path *path)
     bool hidden;
     int retval;
 
-    if (!enabled)
+    if (!READ_ONCE(enabled))
         return 0;
 
     if (lksu_table_guid_check(current_uid().val))
@@ -85,7 +85,7 @@ hook_inode_permission(struct inode *inode)
     bool hidden;
     int retval;
 
-    if (!enabled)
+    if (!READ_ONCE(enabled))
         return 0;
 
     if (lksu_table_guid_check(current_uid().val))
@@ -146,12 +146,12 @@ hook_control(int *retptr, struct lksu_message __user *message)
     switch (msg.func) {
         case LKSU_ENABLE:
             pr_notice("module enable\n");
-            enabled = true;
+            WRITE_ONCE(enabled, true);
             break;
 
         case LKSU_DISABLE:
             pr_notice("module disable\n");
-            enabled = false;
+            WRITE_ONCE(enabled, false);
             break;
 
         case LKSU_GLOBAL_HIDDEN_ADD:
