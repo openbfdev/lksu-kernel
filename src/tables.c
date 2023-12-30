@@ -16,10 +16,10 @@
 #include <linux/printk.h>
 
 static struct rb_root global_file = RB_ROOT;
-static DEFINE_SPINLOCK(gfile_lock);
+static DEFINE_RWLOCK(gfile_lock);
 
 static struct rb_root global_uid = RB_ROOT;
-static DEFINE_SPINLOCK(guid_lock);
+static DEFINE_RWLOCK(guid_lock);
 
 struct dirent_state {
     const char *name;
@@ -110,14 +110,14 @@ lksu_table_gfile_check(const char *name)
 {
     struct rb_node *rb;
 
-    spin_lock(&gfile_lock);
+    read_lock(&gfile_lock);
     rb = rb_find(name, &global_file, file_find);
-    spin_unlock(&gfile_lock);
+    read_unlock(&gfile_lock);
 
     return !!rb;
 }
 
-extern bool
+bool
 lksu_table_gdirent_check(const char *name)
 {
     struct dirent_state state;
@@ -126,9 +126,9 @@ lksu_table_gdirent_check(const char *name)
     state.name = name;
     state.length = strlen(name);
 
-    spin_lock(&gfile_lock);
+    read_lock(&gfile_lock);
     rb = rb_find(&state, &global_file, dirent_find);
-    spin_unlock(&gfile_lock);
+    read_unlock(&gfile_lock);
 
     return !!rb;
 }
@@ -143,16 +143,16 @@ lksu_table_gfile_add(const char *name)
     if (!*name)
         return -EINVAL;
 
-    spin_lock(&gfile_lock);
+    write_lock(&gfile_lock);
     if (rb_find(name, &global_file, file_find)) {
-        spin_unlock(&gfile_lock);
+        write_unlock(&gfile_lock);
         return -EALREADY;
     }
 
     length = strnlen(name, PATH_MAX);
     node = kmalloc(sizeof(*node) + length + 1, GFP_KERNEL);
     if (unlikely(!node)) {
-        spin_unlock(&gfile_lock);
+        write_unlock(&gfile_lock);
         return -ENOMEM;
     }
 
@@ -163,7 +163,7 @@ lksu_table_gfile_add(const char *name)
     node->dirlen = path - name - 1;
 
     rb_add(&node->node, &global_file, file_cmp);
-    spin_unlock(&gfile_lock);
+    write_unlock(&gfile_lock);
 
     return 0;
 }
@@ -177,16 +177,16 @@ lksu_table_gfile_remove(const char *name)
     if (!*name)
         return -EINVAL;
 
-    spin_lock(&gfile_lock);
+    write_lock(&gfile_lock);
     rb = rb_find(name, &global_file, file_find);
     if (!rb) {
-        spin_unlock(&gfile_lock);
+        write_unlock(&gfile_lock);
         return -ENOENT;
     }
 
     node = node_to_file(rb);
     rb_erase(&node->node, &global_file);
-    spin_unlock(&gfile_lock);
+    write_unlock(&gfile_lock);
 
     return 0;
 }
@@ -196,9 +196,9 @@ lksu_table_guid_check(uid_t uid)
 {
     struct rb_node *rb;
 
-    spin_lock(&gfile_lock);
+    read_lock(&gfile_lock);
     rb = rb_find((void *)(uintptr_t)uid, &global_uid, uid_find);
-    spin_unlock(&gfile_lock);
+    read_unlock(&gfile_lock);
 
     return !!rb;
 }
@@ -208,21 +208,21 @@ lksu_table_guid_add(uid_t uid)
 {
     struct uid_table *node;
 
-    spin_lock(&guid_lock);
+    write_lock(&guid_lock);
     if (rb_find((void *)(uintptr_t)uid, &global_uid, uid_find)) {
-        spin_unlock(&guid_lock);
+        write_unlock(&guid_lock);
         return -EALREADY;
     }
 
     node = kmalloc(sizeof(*node), GFP_KERNEL);
     if (unlikely(!node)) {
-        spin_unlock(&guid_lock);
+        write_unlock(&guid_lock);
         return -ENOMEM;
     }
 
     node->uid = uid;
     rb_add(&node->node, &global_uid, uid_cmp);
-    spin_unlock(&guid_lock);
+    write_unlock(&guid_lock);
 
     return 0;
 }
@@ -233,16 +233,30 @@ lksu_table_guid_remove(uid_t uid)
     struct uid_table *node;
     struct rb_node *rb;
 
-    spin_lock(&guid_lock);
+    write_lock(&guid_lock);
     rb = rb_find((void *)(uintptr_t)uid, &global_uid, uid_find);
     if (!rb) {
-        spin_unlock(&guid_lock);
+        write_unlock(&guid_lock);
         return -ENOENT;
     }
 
     node = node_to_uid(rb);
     rb_erase(&node->node, &global_file);
-    spin_unlock(&guid_lock);
+    write_unlock(&guid_lock);
 
     return 0;
+}
+
+int __init
+lksu_tables_init(void)
+{
+    rwlock_init(&gfile_lock);
+    rwlock_init(&guid_lock);
+    return 0;
+}
+
+void __exit
+lksu_tables_exit(void)
+{
+
 }

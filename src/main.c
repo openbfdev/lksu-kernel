@@ -6,9 +6,11 @@
 #define MODULE_NAME "lksu"
 #define pr_fmt(fmt) MODULE_NAME ": " fmt
 
-#include "hooks.h"
-#include "token.h"
+#include "lksu.h"
 #include "hidden.h"
+#include "hooks.h"
+#include "tables.h"
+#include "token.h"
 
 #include <linux/module.h>
 #include <linux/printk.h>
@@ -19,6 +21,10 @@ lksu_init(void)
     int retval;
 
     retval = lksu_token_init();
+    if (retval)
+        return retval;
+
+    retval = lksu_tables_init();
     if (retval)
         return retval;
 
@@ -38,6 +44,7 @@ lksu_exit(void)
 {
     lksu_hooks_exit();
     lksu_hidden_exit();
+    lksu_tables_exit();
     lksu_token_exit();
 }
 

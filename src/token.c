@@ -17,7 +17,7 @@
 
 static struct kmem_cache *token_cache __read_mostly;
 static struct rb_root token_root = RB_ROOT;
-static DEFINE_SPINLOCK(token_lock);
+static DEFINE_RWLOCK(token_lock);
 
 struct lksu_token {
     struct rb_node node;
@@ -62,14 +62,14 @@ lksu_token_verify(const char *token)
     }
     uuid_parse(token, &uuid);
 
-    spin_lock(&token_lock);
+    read_lock(&token_lock);
     if (RB_EMPTY_ROOT(&token_root)) {
-        spin_unlock(&token_lock);
+        read_unlock(&token_lock);
         return true;
     }
 
     rb = rb_find(&uuid, &token_root, token_find);
-    spin_unlock(&token_lock);
+    read_unlock(&token_lock);
 
     return !!rb;
 }
@@ -86,21 +86,21 @@ lksu_token_add(const char *token)
     }
     uuid_parse(token, &uuid);
 
-    spin_lock(&token_lock);
+    write_lock(&token_lock);
     if (rb_find(&uuid, &token_root, token_find)) {
-        spin_unlock(&token_lock);
+        write_unlock(&token_lock);
         return -EALREADY;
     }
 
     node = kmem_cache_alloc(token_cache, GFP_KERNEL);
     if (unlikely(!node)) {
-        spin_unlock(&token_lock);
+        write_unlock(&token_lock);
         return -ENOMEM;
     }
 
     node->token = uuid;
     rb_add(&node->node, &token_root, token_cmp);
-    spin_unlock(&token_lock);
+    write_unlock(&token_lock);
 
     return 0;
 }
@@ -118,17 +118,17 @@ lksu_token_remove(const char *token)
     }
     uuid_parse(token, &uuid);
 
-    spin_lock(&token_lock);
+    write_lock(&token_lock);
     rb = rb_find(&uuid, &token_root, token_find);
     if (!rb) {
-        spin_unlock(&token_lock);
+        write_unlock(&token_lock);
         return -ENOENT;
     }
 
     node = node_to_token(rb);
     rb_erase(&node->node, &token_root);
     kmem_cache_free(token_cache, node);
-    spin_unlock(&token_lock);
+    write_unlock(&token_lock);
 
     return 0;
 }
@@ -140,6 +140,7 @@ lksu_token_init(void)
     if (!token_cache)
         return -ENOMEM;
 
+    rwlock_init(&token_lock);
     return 0;
 }
 
