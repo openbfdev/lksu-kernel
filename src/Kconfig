@@ -20,7 +20,7 @@ config LKSU_HOOK_LIVEPATCH
 	depends on (LKSU=m) && LIVEPATCH
 
 config LKSU_HOOK_KPROBE
-	bool "Kprobe"
-	depends on KRETPROBE
+	bool "Kernel Probe"
+	depends on KRETPROBES
 
 endchoice

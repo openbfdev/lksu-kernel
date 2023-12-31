@@ -21,20 +21,28 @@ lksu_init(void)
     int retval;
 
     retval = lksu_token_init();
-    if (retval)
+    if (retval) {
+        pr_crit("failed to init token: %d\n", retval);
         return retval;
+    }
 
     retval = lksu_tables_init();
-    if (retval)
+    if (retval) {
+        pr_crit("failed to init tables: %d\n", retval);
         return retval;
+    }
 
     retval = lksu_hidden_init();
-    if (retval)
+    if (retval) {
+        pr_crit("failed to init hidden: %d\n", retval);
         return retval;
+    }
 
     retval = lksu_hooks_init();
-    if (retval)
+    if (retval) {
+        pr_crit("failed to init hooks: %d\n", retval);
         return retval;
+    }
 
     return 0;
 }
