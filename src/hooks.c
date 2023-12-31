@@ -35,16 +35,25 @@
 
 static bool enabled __read_mostly;
 
-static inline int
+static inline bool
+hook_whitelist(void)
+{
+    if (!READ_ONCE(enabled))
+        return true;
+
+    if (lksu_table_guid_check(current_uid()))
+        return true;
+
+    return false;
+}
+
+static int
 hook_file_open(struct file *file)
 {
     bool hidden;
     int retval;
 
-    if (!READ_ONCE(enabled))
-        return 0;
-
-    if (lksu_table_guid_check(current_uid().val))
+    if (hook_whitelist())
         return 0;
 
     if (file->f_flags & O_DIRECTORY)
@@ -54,22 +63,16 @@ hook_file_open(struct file *file)
     if (unlikely(retval))
         return retval;
 
-    if (hidden)
-        return -ENOENT;
-
-    return 0;
+    return hidden ? -ENOENT : 0;
 }
 
-static inline int
+static int
 hook_inode_getattr(const struct path *path)
 {
     bool hidden;
     int retval;
 
-    if (!READ_ONCE(enabled))
-        return 0;
-
-    if (lksu_table_guid_check(current_uid().val))
+    if (hook_whitelist())
         return 0;
 
     retval = lksu_hidden_path(path, &hidden);
@@ -79,16 +82,13 @@ hook_inode_getattr(const struct path *path)
     return hidden ? -ENOENT : 0;
 }
 
-static inline int
+static int
 hook_inode_permission(struct inode *inode)
 {
     bool hidden;
     int retval;
 
-    if (!READ_ONCE(enabled))
-        return 0;
-
-    if (lksu_table_guid_check(current_uid().val))
+    if (hook_whitelist())
         return 0;
 
     retval = lksu_hidden_inode(inode, &hidden);
@@ -117,12 +117,11 @@ hook_copy_path(const char __user *name)
     return buffer;
 }
 
-static inline bool
+static bool
 hook_control(int *retptr, struct lksu_message __user *message)
 {
     struct lksu_message msg;
     unsigned long length;
-    const char *hidden;
     int retval = 0;
     bool verify;
 
@@ -154,7 +153,9 @@ hook_control(int *retptr, struct lksu_message __user *message)
             WRITE_ONCE(enabled, false);
             break;
 
-        case LKSU_GLOBAL_HIDDEN_ADD:
+        case LKSU_GLOBAL_HIDDEN_ADD: {
+            const char *hidden;
+
             hidden = hook_copy_path(msg.args.g_hidden);
             if (unlikely(!hidden)) {
                 retval = -ENOMEM;
@@ -165,8 +166,11 @@ hook_control(int *retptr, struct lksu_message __user *message)
             retval = lksu_table_gfile_add(hidden);
             __putname(hidden);
             break;
+        }
 
-        case LKSU_GLOBAL_HIDDEN_REMOVE:
+        case LKSU_GLOBAL_HIDDEN_REMOVE: {
+            const char *hidden;
+
             hidden = hook_copy_path(msg.args.g_hidden);
             if (unlikely(!hidden)) {
                 retval = -ENOMEM;
@@ -177,16 +181,35 @@ hook_control(int *retptr, struct lksu_message __user *message)
             retval = lksu_table_gfile_remove(hidden);
             __putname(hidden);
             break;
+        }
 
-        case LKSU_GLOBAL_UID_ADD:
-            pr_notice("global uid add: %u\n", msg.args.g_uid);
-            retval = lksu_table_guid_add(msg.args.g_uid);
-            break;
+        case LKSU_GLOBAL_UID_ADD: {
+            kuid_t kuid;
 
-        case LKSU_GLOBAL_UID_REMOVE:
-            pr_notice("global uid remove: %u\n", msg.args.g_uid);
-            retval = lksu_table_guid_remove(msg.args.g_uid);
+            kuid = make_kuid(current_user_ns(), msg.args.g_uid);
+            if (!uid_valid(kuid)) {
+                retval = -EINVAL;
+                break;
+            }
+
+            pr_notice("global uid add: %u\n", __kuid_val(kuid));
+            retval = lksu_table_guid_add(kuid);
             break;
+        }
+
+        case LKSU_GLOBAL_UID_REMOVE: {
+            kuid_t kuid;
+
+            kuid = make_kuid(current_user_ns(), msg.args.g_uid);
+            if (!uid_valid(kuid)) {
+                retval = -EINVAL;
+                break;
+            }
+
+            pr_notice("global uid remove: %u\n", __kuid_val(kuid));
+            retval = lksu_table_guid_add(kuid);
+            break;
+        }
 
         case LKSU_TOKEN_ADD:
             pr_notice("token add: %*.s\n", LKSU_TOKEN_LEN, msg.args.token);

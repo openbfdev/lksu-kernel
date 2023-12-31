@@ -22,13 +22,13 @@ extern int
 lksu_table_gfile_remove(const char *name);
 
 extern bool
-lksu_table_guid_check(uid_t uid);
+lksu_table_guid_check(kuid_t kuid);
 
 extern int
-lksu_table_guid_add(uid_t uid);
+lksu_table_guid_add(kuid_t kuid);
 
 extern int
-lksu_table_guid_remove(uid_t uid);
+lksu_table_guid_remove(kuid_t kuid);
 
 extern int __init
 lksu_tables_init(void);

@@ -34,7 +34,7 @@ struct file_table {
 
 struct uid_table {
     struct rb_node node;
-    uid_t uid;
+    kuid_t kuid;
 };
 
 #define node_to_file(ptr) \
@@ -87,22 +87,22 @@ uid_cmp(struct rb_node *na, const struct rb_node *nb)
     ta = node_to_uid(na);
     tb = node_to_uid(nb);
 
-    return ta->uid < tb->uid;
+    return uid_lt(ta->kuid, tb->kuid);
 }
 
 static int
 uid_find(const void *key, const struct rb_node *node)
 {
     const struct uid_table *table;
-    uid_t uid;
+    const kuid_t *kuidp;
 
     table = node_to_uid(node);
-    uid = (uid_t)(uintptr_t)key;
+    kuidp = key;
 
-    if (table->uid == uid)
+    if (uid_eq(table->kuid, *kuidp))
         return 0;
 
-    return table->uid < uid ? -1 : 1;
+    return uid_lt(table->kuid, *kuidp) ? -1 : 1;
 }
 
 bool
@@ -192,24 +192,24 @@ lksu_table_gfile_remove(const char *name)
 }
 
 bool
-lksu_table_guid_check(uid_t uid)
+lksu_table_guid_check(kuid_t kuid)
 {
     struct rb_node *rb;
 
     read_lock(&gfile_lock);
-    rb = rb_find((void *)(uintptr_t)uid, &global_uid, uid_find);
+    rb = rb_find(&kuid, &global_uid, uid_find);
     read_unlock(&gfile_lock);
 
     return !!rb;
 }
 
 int
-lksu_table_guid_add(uid_t uid)
+lksu_table_guid_add(kuid_t kuid)
 {
     struct uid_table *node;
 
     write_lock(&guid_lock);
-    if (rb_find((void *)(uintptr_t)uid, &global_uid, uid_find)) {
+    if (rb_find(&kuid, &global_uid, uid_find)) {
         write_unlock(&guid_lock);
         return -EALREADY;
     }
@@ -220,7 +220,7 @@ lksu_table_guid_add(uid_t uid)
         return -ENOMEM;
     }
 
-    node->uid = uid;
+    node->kuid = kuid;
     rb_add(&node->node, &global_uid, uid_cmp);
     write_unlock(&guid_lock);
 
@@ -228,13 +228,13 @@ lksu_table_guid_add(uid_t uid)
 }
 
 int
-lksu_table_guid_remove(uid_t uid)
+lksu_table_guid_remove(kuid_t kuid)
 {
     struct uid_table *node;
     struct rb_node *rb;
 
     write_lock(&guid_lock);
-    rb = rb_find((void *)(uintptr_t)uid, &global_uid, uid_find);
+    rb = rb_find(&kuid, &global_uid, uid_find);
     if (!rb) {
         write_unlock(&guid_lock);
         return -ENOENT;
