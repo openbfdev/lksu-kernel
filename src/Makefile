@@ -5,7 +5,7 @@
 
 ifdef CONFIG_LKSU_MODULE
 CONFIG_LKSU := m
-ccflags-y += -DCONFIG_LKSU_HOOK_LIVEPATCH
+ccflags-y += -DCONFIG_LKSU_HOOK_KPROBE
 endif
 
 obj-$(CONFIG_LKSU) := lksu.o

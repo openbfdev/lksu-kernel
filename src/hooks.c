@@ -229,7 +229,7 @@ hook_control(int *retptr, struct lksu_message __user *message)
     return true;
 
 failed:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 8)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
     const char *ename;
     ename = errname(retval) ?: "EUNKNOW";
     pr_warn("unverified operation: %s\n", ename);
