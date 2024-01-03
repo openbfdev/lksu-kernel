@@ -159,7 +159,7 @@ hook_control(int *retptr, struct lksu_message __user *message)
         case LKSU_GLOBAL_HIDDEN_ADD: {
             const char *hidden;
 
-            hidden = hook_copy_path(msg.args.g_hidden);
+            hidden = hook_copy_path((void __user *)msg.args.g_hidden);
             if (unlikely(!hidden)) {
                 retval = -ENOMEM;
                 break;
@@ -174,7 +174,7 @@ hook_control(int *retptr, struct lksu_message __user *message)
         case LKSU_GLOBAL_HIDDEN_REMOVE: {
             const char *hidden;
 
-            hidden = hook_copy_path(msg.args.g_hidden);
+            hidden = hook_copy_path((void __user *)msg.args.g_hidden);
             if (unlikely(!hidden)) {
                 retval = -ENOMEM;
                 break;
