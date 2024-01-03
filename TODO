@@ -1,1 +1,5 @@
 TODO for Linux Kernel SU
+
+1: Support secure uninstallation module.
+2: Addressing the possibility of under-utilization of kretprobe instances.
+3: Solve the problem that livepatch causes lsm to be unavailable.
