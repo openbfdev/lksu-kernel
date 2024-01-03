@@ -8,10 +8,10 @@
 
 #include <linux/module.h>
 
-extern int __init
+extern int
 lksu_hooks_init(void);
 
-extern void __exit
+extern void
 lksu_hooks_exit(void);
 
 #endif /* _LKSU_HOOKS_H_ */

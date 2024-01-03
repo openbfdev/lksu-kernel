@@ -29,22 +29,30 @@ lksu_init(void)
     retval = lksu_tables_init();
     if (retval) {
         pr_crit("failed to init tables: %d\n", retval);
-        return retval;
+        goto free_token;
     }
 
     retval = lksu_hidden_init();
     if (retval) {
         pr_crit("failed to init hidden: %d\n", retval);
-        return retval;
+        goto free_tables;
     }
 
     retval = lksu_hooks_init();
     if (retval) {
         pr_crit("failed to init hooks: %d\n", retval);
-        return retval;
+        goto free_hidden;
     }
 
     return 0;
+
+free_hidden:
+    lksu_hidden_exit();
+free_tables:
+    lksu_tables_exit();
+free_token:
+    lksu_token_exit();
+    return retval;
 }
 
 static __exit void

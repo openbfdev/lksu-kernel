@@ -18,6 +18,7 @@
 static struct rb_root global_file = RB_ROOT;
 static DEFINE_RWLOCK(gfile_lock);
 
+static struct kmem_cache *guid_cache;
 static struct rb_root global_uid = RB_ROOT;
 static DEFINE_RWLOCK(guid_lock);
 
@@ -247,16 +248,21 @@ lksu_table_guid_remove(kuid_t kuid)
     return 0;
 }
 
-int __init
+int
 lksu_tables_init(void)
 {
+    guid_cache = KMEM_CACHE(uid_table, 0);
+    if (!guid_cache)
+        return -ENOMEM;
+
     rwlock_init(&gfile_lock);
     rwlock_init(&guid_lock);
+
     return 0;
 }
 
-void __exit
+void
 lksu_tables_exit(void)
 {
-
+    kmem_cache_destroy(guid_cache);
 }

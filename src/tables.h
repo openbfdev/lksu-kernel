@@ -30,10 +30,10 @@ lksu_table_guid_add(kuid_t kuid);
 extern int
 lksu_table_guid_remove(kuid_t kuid);
 
-extern int __init
+extern int
 lksu_tables_init(void);
 
-extern void __exit
+extern void
 lksu_tables_exit(void);
 
 #endif /* _LKSU_TABLES_H_ */

@@ -322,5 +322,5 @@ lksu_hidden_init(void)
 void
 lksu_hidden_exit(void)
 {
-
+    kmem_cache_destroy(filldir_cache);
 }

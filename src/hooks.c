@@ -122,24 +122,27 @@ hook_control(int *retptr, struct lksu_message __user *message)
 {
     struct lksu_message msg;
     unsigned long length;
-    int retval = 0;
     bool verify;
+    int retval;
+
+    verify = false;
+    retval = 0;
 
     if (unlikely(!message)) {
         retval = -EINVAL;
-        goto failed;
+        goto finish;
     }
 
     length = copy_from_user(&msg, message, sizeof(msg));
     if (unlikely(length)) {
         retval = -EFAULT;
-        goto failed;
+        goto finish;
     }
 
     verify = lksu_token_verify(msg.token);
     if (unlikely(!verify)) {
         retval = -EACCES;
-        goto failed;
+        goto finish;
     }
 
     switch (msg.func) {
@@ -212,32 +215,36 @@ hook_control(int *retptr, struct lksu_message __user *message)
         }
 
         case LKSU_TOKEN_ADD:
-            pr_notice("token add: %*.s\n", LKSU_TOKEN_LEN, msg.args.token);
+            pr_notice("token add: %.*s\n", LKSU_TOKEN_LEN, msg.args.token);
             retval = lksu_token_add(msg.args.token);
             break;
 
         case LKSU_TOKEN_REMOVE:
-            pr_notice("token remove: %*.s\n", LKSU_TOKEN_LEN, msg.args.token);
+            pr_notice("token remove: %.*s\n", LKSU_TOKEN_LEN, msg.args.token);
             retval = lksu_token_remove(msg.args.token);
             break;
 
         default:
-            goto failed;
+            retval = -EINVAL;
+            break;
     }
 
+finish:
     *retptr = retval;
-    return true;
 
-failed:
+    if (retval) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
-    const char *ename;
-    ename = errname(retval) ?: "EUNKNOW";
-    pr_warn("unverified operation: %s\n", ename);
+        const char *ename;
+        ename = errname(retval) ?: "EUNKNOW";
+        pr_warn("illegal operation: %s (%s)\n", ename,
+                verify ? "verified" : "non-validated");
 #else
-    pr_warn("unverified operation: %d\n", retval);
+        pr_warn("illegal operation: %d (%s)\n", retval,
+                verify ? "verified" : "non-validated");
 #endif
+    }
 
-    return false;
+    return verify;
 }
 
 #if defined(CONFIG_LKSU_HOOK_LSM)
@@ -250,7 +257,7 @@ failed:
 # error "Undefined hook function"
 #endif
 
-int __init
+int
 lksu_hooks_init(void)
 {
 #if defined(CONFIG_LKSU_HOOK_LSM)
@@ -262,7 +269,7 @@ lksu_hooks_init(void)
 #endif
 }
 
-void __exit
+void
 lksu_hooks_exit(void)
 {
 #if defined(CONFIG_LKSU_HOOK_LSM)
