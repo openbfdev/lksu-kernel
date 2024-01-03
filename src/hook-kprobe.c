@@ -5,18 +5,23 @@
 
 #include <linux/kprobes.h>
 
-struct kprobe_args {
-    unsigned long data[2];
-};
-
 static int
 kprobe_get_args(struct kretprobe_instance *ri, struct pt_regs *regs)
 {
-    struct kprobe_args *args;
+    struct kretprobe *probe;
+    unsigned long *args;
+    unsigned int count;
 
+    probe = get_kretprobe(ri);
     args = (void *)ri->data;
-    args->data[0] = regs_get_kernel_argument(regs, 0);
-    args->data[1] = regs_get_kernel_argument(regs, 1);
+
+    for (count = 0; count < probe->data_size / sizeof(unsigned long); ++count)
+        args[count] = regs_get_kernel_argument(regs, count);
+
+    WARN_ONCE(
+        probe->nmissed,
+        "%s: hook event leakage", probe->kp.symbol_name
+    );
 
     return 0;
 }
@@ -25,12 +30,12 @@ static int
 kprobe_file_open(struct kretprobe_instance *ri, struct pt_regs *regs)
 {
 #if 1
-    struct kprobe_args *args;
+    unsigned long *args;
     struct file *file;
     int retval;
 
     args = (void *)ri->data;
-    file = (struct file *)args->data[0];
+    file = (struct file *)args[0];
 
     retval = hook_file_open(file);
     if (retval)
@@ -45,12 +50,12 @@ static int
 kprobe_inode_getattr(struct kretprobe_instance *ri, struct pt_regs *regs)
 {
 #if 1
-    struct kprobe_args *args;
+    unsigned long *args;
     struct path *path;
     int retval;
 
     args = (void *)ri->data;
-    path = (struct path *)args->data[0];
+    path = (struct path *)args[0];
 
 	if (unlikely(IS_PRIVATE(d_backing_inode(path->dentry))))
 		return 0;
@@ -68,12 +73,12 @@ static int
 kprobe_inode_permission(struct kretprobe_instance *ri, struct pt_regs *regs)
 {
 #if 1
-    struct kprobe_args *args;
+    unsigned long *args;
     struct inode *inode;
     int retval;
 
     args = (void *)ri->data;
-    inode = (struct inode *)args->data[0];
+    inode = (struct inode *)args[0];
 
 	if (unlikely(IS_PRIVATE(inode)))
 		return 0;
@@ -91,13 +96,13 @@ static int
 kprobe_task_prctl(struct kretprobe_instance *ri, struct pt_regs *regs)
 {
 #if 1
-    struct kprobe_args *args;
+    unsigned long *args;
     struct lksu_message __user *message;
     int option, retval;
 
     args = (void *)ri->data;
-    option = (int)args->data[0];
-    message = (void __user *)args->data[1];
+    option = (int)args[0];
+    message = (void __user *)args[1];
 
     if (option != LKSU_SYSCALL_CTLKEY)
         return 0;
@@ -118,25 +123,25 @@ kprobe_hooks[] = {
         .kp.symbol_name = "security_file_open",
         .entry_handler = kprobe_get_args,
         .handler = kprobe_file_open,
-        .data_size = sizeof(struct kprobe_args),
+        .data_size = sizeof(unsigned long [1]),
     },
     &(struct kretprobe) {
         .kp.symbol_name = "security_inode_getattr",
         .entry_handler = kprobe_get_args,
         .handler = kprobe_inode_getattr,
-        .data_size = sizeof(struct kprobe_args),
+        .data_size = sizeof(unsigned long [1]),
     },
     &(struct kretprobe) {
         .kp.symbol_name = "security_inode_permission",
         .entry_handler = kprobe_get_args,
         .handler = kprobe_inode_permission,
-        .data_size = sizeof(struct kprobe_args),
+        .data_size = sizeof(unsigned long [1]),
     },
     &(struct kretprobe) {
         .kp.symbol_name = "security_task_prctl",
         .entry_handler = kprobe_get_args,
         .handler = kprobe_task_prctl,
-        .data_size = sizeof(struct kprobe_args),
+        .data_size = sizeof(unsigned long [2]),
     },
 };
 
