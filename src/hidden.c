@@ -305,7 +305,7 @@ finish:
     return retval;
 }
 
-int
+int __init
 lksu_hidden_init(void)
 {
 	filldir_cache = kmem_cache_create(

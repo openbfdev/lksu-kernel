@@ -59,7 +59,7 @@ lsm_hooks[] = {
     LSM_HOOK_INIT(task_prctl, lsm_task_prctl),
 };
 
-static int
+static __init int
 hooks_lsm_init(void)
 {
     pr_notice("used lsm function\n");

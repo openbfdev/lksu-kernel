@@ -133,7 +133,7 @@ lksu_token_remove(const char *token)
     return 0;
 }
 
-int
+int __init
 lksu_token_init(void)
 {
     token_cache = KMEM_CACHE(lksu_token, 0);

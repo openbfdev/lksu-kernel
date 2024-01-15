@@ -145,7 +145,7 @@ kprobe_hooks[] = {
     },
 };
 
-static int
+static __init int
 hooks_kprobe_init(void)
 {
     pr_notice("used kprobe function\n");

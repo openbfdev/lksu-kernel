@@ -248,7 +248,7 @@ lksu_table_guid_remove(kuid_t kuid)
     return 0;
 }
 
-int
+int __init
 lksu_tables_init(void)
 {
     guid_cache = KMEM_CACHE(uid_table, 0);

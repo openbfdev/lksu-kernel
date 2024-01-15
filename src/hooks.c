@@ -257,7 +257,7 @@ finish:
 # error "Undefined hook function"
 #endif
 
-int
+int __init
 lksu_hooks_init(void)
 {
 #if defined(CONFIG_LKSU_HOOK_LSM)

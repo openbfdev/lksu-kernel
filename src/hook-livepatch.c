@@ -105,7 +105,7 @@ patch = {
     .replace = true,
 };
 
-static int
+static __init int
 hooks_livepatch_init(void)
 {
     pr_notice("used livepatch function\n");
