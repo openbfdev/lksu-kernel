@@ -35,7 +35,7 @@ token_cmp(struct rb_node *na, const struct rb_node *nb)
     ta = node_to_token(na);
     tb = node_to_token(nb);
 
-    return memcmp(&ta->token, &tb->token, sizeof(guid_t)) < 0;
+    return memcmp(&ta->token, &tb->token, UUID_SIZE) < 0;
 }
 
 static int
@@ -47,7 +47,7 @@ token_find(const void *key, const struct rb_node *node)
     token = node_to_token(node);
     uuid = key;
 
-    return memcmp(&token->token, uuid, sizeof(guid_t));
+    return memcmp(&token->token, uuid, UUID_SIZE);
 }
 
 bool
