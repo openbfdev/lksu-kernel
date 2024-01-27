@@ -189,6 +189,8 @@ lksu_table_gfile_remove(const char *name)
     rb_erase(&node->node, &global_file);
     write_unlock(&gfile_lock);
 
+    kfree(node);
+
     return 0;
 }
 
@@ -215,7 +217,7 @@ lksu_table_guid_add(kuid_t kuid)
         return -EALREADY;
     }
 
-    node = kmalloc(sizeof(*node), GFP_KERNEL);
+    node = kmem_cache_alloc(guid_cache, GFP_KERNEL);
     if (unlikely(!node)) {
         write_unlock(&guid_lock);
         return -ENOMEM;
@@ -244,6 +246,8 @@ lksu_table_guid_remove(kuid_t kuid)
     node = node_to_uid(rb);
     rb_erase(&node->node, &global_file);
     write_unlock(&guid_lock);
+
+    kmem_cache_free(guid_cache, node);
 
     return 0;
 }
