@@ -17,6 +17,9 @@ lksu_token_add(const char *token);
 extern int
 lksu_token_remove(const char *token);
 
+extern void
+lksu_token_flush(void);
+
 extern int
 lksu_token_init(void);
 

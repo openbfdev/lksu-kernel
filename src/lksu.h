@@ -18,6 +18,7 @@
 enum lksu_func {
     LKSU_ENABLE = 0,
     LKSU_DISABLE,
+    LKSU_FLUSH,
 
     LKSU_GLOBAL_HIDDEN_ADD,
     LKSU_GLOBAL_HIDDEN_REMOVE,

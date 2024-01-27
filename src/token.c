@@ -134,6 +134,19 @@ lksu_token_remove(const char *token)
     return 0;
 }
 
+void
+lksu_token_flush(void)
+{
+    struct lksu_token *node, *tmp;
+
+    write_lock(&token_lock);
+    rbtree_postorder_for_each_entry_safe(node, tmp, &token_root, node)
+        kmem_cache_free(token_cache, node);
+
+    token_root = RB_ROOT;
+    write_unlock(&token_lock);
+}
+
 int __init
 lksu_token_init(void)
 {

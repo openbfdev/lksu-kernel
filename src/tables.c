@@ -252,6 +252,27 @@ lksu_table_guid_remove(kuid_t kuid)
     return 0;
 }
 
+void
+lksu_table_flush(void)
+{
+    struct file_table *file, *tfile;
+    struct uid_table *uid, *tuid;
+
+    write_lock(&gfile_lock);
+    rbtree_postorder_for_each_entry_safe(file, tfile, &global_file, node)
+        kfree(file);
+
+    global_file = RB_ROOT;
+    write_unlock(&gfile_lock);
+
+    write_lock(&guid_lock);
+    rbtree_postorder_for_each_entry_safe(uid, tuid, &global_uid, node)
+        kmem_cache_free(guid_cache, uid);
+
+    global_uid = RB_ROOT;
+    write_unlock(&guid_lock);
+}
+
 int __init
 lksu_tables_init(void)
 {

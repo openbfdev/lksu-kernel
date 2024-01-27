@@ -156,6 +156,12 @@ hook_control(int *retptr, struct lksu_message __user *message)
             WRITE_ONCE(enabled, false);
             break;
 
+        case LKSU_FLUSH:
+            pr_notice("flush rules\n");
+            lksu_token_flush();
+            lksu_table_flush();
+            break;
+
         case LKSU_GLOBAL_HIDDEN_ADD: {
             const char *hidden;
 

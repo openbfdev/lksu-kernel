@@ -30,6 +30,9 @@ lksu_table_guid_add(kuid_t kuid);
 extern int
 lksu_table_guid_remove(kuid_t kuid);
 
+extern void
+lksu_table_flush(void);
+
 extern int
 lksu_tables_init(void);
 
