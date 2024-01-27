@@ -127,8 +127,9 @@ lksu_token_remove(const char *token)
 
     node = node_to_token(rb);
     rb_erase(&node->node, &token_root);
-    kmem_cache_free(token_cache, node);
     write_unlock(&token_lock);
+
+    kmem_cache_free(token_cache, node);
 
     return 0;
 }
