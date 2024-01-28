@@ -8,9 +8,9 @@
 
 #include "lksu.h"
 #include "token.h"
+#include "rbtree.h"
 
 #include <linux/module.h>
-#include <linux/rbtree.h>
 #include <linux/spinlock.h>
 #include <linux/slab.h>
 #include <linux/printk.h>
@@ -68,7 +68,7 @@ lksu_token_verify(const char *token)
         return true;
     }
 
-    rb = rb_find(&uuid, &token_root, token_find);
+    rb = lksu_rb_find(&uuid, &token_root, token_find);
     read_unlock(&token_lock);
 
     return !!rb;
@@ -87,7 +87,7 @@ lksu_token_add(const char *token)
     uuid_parse(token, &uuid);
 
     write_lock(&token_lock);
-    if (rb_find(&uuid, &token_root, token_find)) {
+    if (lksu_rb_find(&uuid, &token_root, token_find)) {
         write_unlock(&token_lock);
         return -EALREADY;
     }
@@ -99,7 +99,7 @@ lksu_token_add(const char *token)
     }
 
     node->token = uuid;
-    rb_add(&node->node, &token_root, token_cmp);
+    lksu_rb_add(&node->node, &token_root, token_cmp);
     write_unlock(&token_lock);
 
     return 0;
@@ -119,7 +119,7 @@ lksu_token_remove(const char *token)
     uuid_parse(token, &uuid);
 
     write_lock(&token_lock);
-    rb = rb_find(&uuid, &token_root, token_find);
+    rb = lksu_rb_find(&uuid, &token_root, token_find);
     if (!rb) {
         write_unlock(&token_lock);
         return -ENOENT;

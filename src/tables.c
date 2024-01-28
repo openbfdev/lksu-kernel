@@ -8,11 +8,11 @@
 
 #include "lksu.h"
 #include "tables.h"
+#include "rbtree.h"
 
 #include <linux/module.h>
 #include <linux/string.h>
 #include <linux/slab.h>
-#include <linux/rbtree.h>
 #include <linux/printk.h>
 
 static struct rb_root global_file = RB_ROOT;
@@ -112,7 +112,7 @@ lksu_table_gfile_check(const char *name)
     struct rb_node *rb;
 
     read_lock(&gfile_lock);
-    rb = rb_find(name, &global_file, file_find);
+    rb = lksu_rb_find(name, &global_file, file_find);
     read_unlock(&gfile_lock);
 
     return !!rb;
@@ -128,7 +128,7 @@ lksu_table_gdirent_check(const char *name)
     state.length = strlen(name);
 
     read_lock(&gfile_lock);
-    rb = rb_find(&state, &global_file, dirent_find);
+    rb = lksu_rb_find(&state, &global_file, dirent_find);
     read_unlock(&gfile_lock);
 
     return !!rb;
@@ -145,7 +145,7 @@ lksu_table_gfile_add(const char *name)
         return -EINVAL;
 
     write_lock(&gfile_lock);
-    if (rb_find(name, &global_file, file_find)) {
+    if (lksu_rb_find(name, &global_file, file_find)) {
         write_unlock(&gfile_lock);
         return -EALREADY;
     }
@@ -163,7 +163,7 @@ lksu_table_gfile_add(const char *name)
     path = kbasename(name);
     node->dirlen = path - name - 1;
 
-    rb_add(&node->node, &global_file, file_cmp);
+    lksu_rb_add(&node->node, &global_file, file_cmp);
     write_unlock(&gfile_lock);
 
     return 0;
@@ -179,7 +179,7 @@ lksu_table_gfile_remove(const char *name)
         return -EINVAL;
 
     write_lock(&gfile_lock);
-    rb = rb_find(name, &global_file, file_find);
+    rb = lksu_rb_find(name, &global_file, file_find);
     if (!rb) {
         write_unlock(&gfile_lock);
         return -ENOENT;
@@ -200,7 +200,7 @@ lksu_table_guid_check(kuid_t kuid)
     struct rb_node *rb;
 
     read_lock(&gfile_lock);
-    rb = rb_find(&kuid, &global_uid, uid_find);
+    rb = lksu_rb_find(&kuid, &global_uid, uid_find);
     read_unlock(&gfile_lock);
 
     return !!rb;
@@ -212,7 +212,7 @@ lksu_table_guid_add(kuid_t kuid)
     struct uid_table *node;
 
     write_lock(&guid_lock);
-    if (rb_find(&kuid, &global_uid, uid_find)) {
+    if (lksu_rb_find(&kuid, &global_uid, uid_find)) {
         write_unlock(&guid_lock);
         return -EALREADY;
     }
@@ -224,7 +224,7 @@ lksu_table_guid_add(kuid_t kuid)
     }
 
     node->kuid = kuid;
-    rb_add(&node->node, &global_uid, uid_cmp);
+    lksu_rb_add(&node->node, &global_uid, uid_cmp);
     write_unlock(&guid_lock);
 
     return 0;
@@ -237,7 +237,7 @@ lksu_table_guid_remove(kuid_t kuid)
     struct rb_node *rb;
 
     write_lock(&guid_lock);
-    rb = rb_find(&kuid, &global_uid, uid_find);
+    rb = lksu_rb_find(&kuid, &global_uid, uid_find);
     if (!rb) {
         write_unlock(&guid_lock);
         return -ENOENT;

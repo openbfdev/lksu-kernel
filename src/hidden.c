@@ -9,13 +9,13 @@
 #include "lksu.h"
 #include "hidden.h"
 #include "tables.h"
+#include "rbtree.h"
 
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
 #include <linux/version.h>
 #include <linux/printk.h>
-#include <linux/rbtree.h>
 #include <linux/errname.h>
 
 static struct kmem_cache *filldir_cache __read_mostly;
@@ -23,7 +23,7 @@ static struct rb_root hidden_dirent = RB_ROOT;
 static DEFINE_SPINLOCK(dirent_lock);
 
 struct iter_context {
-	struct dir_context ctx;
+    struct dir_context ctx;
     struct dir_context *octx;
     const char *path;
     char *name;
@@ -41,18 +41,18 @@ struct hidden_dirent {
 static inline char *
 inode_path(struct inode *inode, char *buffer, int len, bool *noalias)
 {
-	struct dentry *dentry;
+    struct dentry *dentry;
     char *name;
 
     *noalias = false;
-	dentry = d_find_alias(inode);
-	if (!dentry) {
+    dentry = d_find_alias(inode);
+    if (!dentry) {
         *noalias = true;
-    	return NULL;
+        return NULL;
     }
 
-	name = dentry_path_raw(dentry, buffer, len);
-	dput(dentry);
+    name = dentry_path_raw(dentry, buffer, len);
+    dput(dentry);
 
     return name;
 }
@@ -115,7 +115,7 @@ iter_file(struct file *file, struct dir_context *dctx)
     int retval;
 
     spin_lock(&dirent_lock);
-    rb = rb_find(file, &hidden_dirent, hidden_find);
+    rb = lksu_rb_find(file, &hidden_dirent, hidden_find);
     BUG_ON(!rb);
     spin_unlock(&dirent_lock);
 
@@ -151,7 +151,7 @@ release_dirent(struct inode *inode, struct file *file)
     struct rb_node *rb;
 
     spin_lock(&dirent_lock);
-    rb = rb_find(file, &hidden_dirent, hidden_find);
+    rb = lksu_rb_find(file, &hidden_dirent, hidden_find);
     BUG_ON(!rb);
 
     rb_erase(rb, &hidden_dirent);
@@ -212,7 +212,7 @@ lksu_hidden_dirent(struct file *file)
     file->f_op = fops;
 
     spin_lock(&dirent_lock);
-    rb_add(&hidden->node, &hidden_dirent, hidden_cmp);
+    lksu_rb_add(&hidden->node, &hidden_dirent, hidden_cmp);
     spin_unlock(&dirent_lock);
 
     __putname(buffer);
@@ -308,7 +308,7 @@ finish:
 int __init
 lksu_hidden_init(void)
 {
-	filldir_cache = kmem_cache_create(
+    filldir_cache = kmem_cache_create(
         "names_cache", PATH_MAX + NAME_MAX + 1, 0,
         SLAB_HWCACHE_ALIGN | SLAB_PANIC, NULL
     );

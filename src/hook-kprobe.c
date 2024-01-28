@@ -57,8 +57,8 @@ kprobe_inode_getattr(struct kretprobe_instance *ri, struct pt_regs *regs)
     args = (void *)ri->data;
     path = (struct path *)args[0];
 
-	if (unlikely(IS_PRIVATE(d_backing_inode(path->dentry))))
-		return 0;
+    if (unlikely(IS_PRIVATE(d_backing_inode(path->dentry))))
+        return 0;
 
     retval = hook_inode_getattr(path);
     if (retval)
@@ -80,8 +80,8 @@ kprobe_inode_permission(struct kretprobe_instance *ri, struct pt_regs *regs)
     args = (void *)ri->data;
     inode = (struct inode *)args[0];
 
-	if (unlikely(IS_PRIVATE(inode)))
-		return 0;
+    if (unlikely(IS_PRIVATE(inode)))
+        return 0;
 
     retval = hook_inode_permission(inode);
     if (retval)
