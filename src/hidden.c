@@ -39,7 +39,7 @@ struct hidden_dirent {
     rb_entry(ptr, struct hidden_dirent, node)
 
 static inline char *
-inode_path(struct inode *inode, char *buffer, int len, bool *noalias)
+inode_name(struct inode *inode, char *buffer, bool *noalias)
 {
     struct dentry *dentry;
     char *name;
@@ -51,7 +51,7 @@ inode_path(struct inode *inode, char *buffer, int len, bool *noalias)
         return NULL;
     }
 
-    name = dentry_path_raw(dentry, buffer, len);
+    name = dentry_path_raw(dentry, buffer, PATH_MAX);
     dput(dentry);
 
     return name;
@@ -244,6 +244,11 @@ lksu_hidden_file(struct file *file, bool *hidden)
     if (lksu_table_gfile_check(name))
         *hidden = true;
 
+#if LKSU_DEBUG
+    pr_info("hidden file '%s': %s\n", name,
+            *hidden ? "true" : "false");
+#endif
+
 finish:
     __putname(buffer);
     return retval;
@@ -268,6 +273,11 @@ lksu_hidden_path(const struct path *path, bool *hidden)
     if (lksu_table_gfile_check(name))
         *hidden = true;
 
+#if LKSU_DEBUG
+    pr_info("hidden path '%s': %s\n", name,
+            *hidden ? "true" : "false");
+#endif
+
 finish:
     __putname(buffer);
     return retval;
@@ -286,7 +296,7 @@ lksu_hidden_inode(struct inode *inode, bool *hidden)
     if (unlikely(!buffer))
         return -ENOMEM;
 
-    name = inode_path(inode, buffer, PATH_MAX, &noalias);
+    name = inode_name(inode, buffer, &noalias);
     if (noalias) {
         retval = 0;
         goto finish;
@@ -299,6 +309,11 @@ lksu_hidden_inode(struct inode *inode, bool *hidden)
 
     if (lksu_table_gfile_check(name))
         *hidden = true;
+
+#if LKSU_DEBUG
+    pr_info("hidden inode '%s': %s\n", name,
+            *hidden ? "true" : "false");
+#endif
 
 finish:
     __putname(buffer);

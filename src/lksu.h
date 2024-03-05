@@ -18,6 +18,7 @@
 #endif
 
 #define LKSU_TOKEN_LEN 36
+#define LKSU_DEBUG 1
 
 enum lksu_func {
     LKSU_ENABLE = 0,
