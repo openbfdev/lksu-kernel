@@ -13,6 +13,10 @@
 # define LKSU_SYSCALL_CTLKEY 0x55aa00ff
 #endif
 
+#ifndef LKSU_LSM_ID
+# define LKSU_LSM_ID 99
+#endif
+
 #define LKSU_TOKEN_LEN 36
 
 enum lksu_func {

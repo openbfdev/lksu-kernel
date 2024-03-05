@@ -59,11 +59,23 @@ lsm_hooks[] = {
     LSM_HOOK_INIT(task_prctl, lsm_task_prctl),
 };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+const struct lsm_id
+lksu_lsmid = {
+	.name = "lksu",
+	.id = LKSU_LSM_ID,
+};
+#endif
+
 static __init int
 hooks_lsm_init(void)
 {
     pr_notice("used lsm function\n");
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
+    security_add_hooks(lsm_hooks, ARRAY_SIZE(lsm_hooks), &lksu_lsmid);
+#else
     security_add_hooks(lsm_hooks, ARRAY_SIZE(lsm_hooks), "lksu");
+#endif
     return 0;
 }
 
