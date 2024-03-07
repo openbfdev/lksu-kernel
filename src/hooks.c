@@ -219,7 +219,7 @@ hook_control(int *retptr, struct lksu_message __user *message)
             }
 
             pr_notice("global uid remove: %u\n", __kuid_val(kuid));
-            retval = lksu_table_guid_add(kuid);
+            retval = lksu_table_guid_remove(kuid);
             break;
         }
 
