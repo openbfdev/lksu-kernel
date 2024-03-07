@@ -12,5 +12,6 @@ obj-$(CONFIG_LKSU) := lksu.o
 lksu-y += hidden.o
 lksu-y += hooks.o
 lksu-y += main.o
+lksu-y += procfs.o
 lksu-y += tables.o
 lksu-y += token.o

@@ -8,6 +8,30 @@
 
 #include <linux/module.h>
 #include <linux/types.h>
+#include "rbtree.h"
+
+struct lksu_file_table {
+    struct rb_node node;
+    size_t dirlen;
+    char name[];
+};
+
+struct lksu_uid_table {
+    struct rb_node node;
+    kuid_t kuid;
+};
+
+#define lksu_node_to_file(ptr) \
+    rb_entry(ptr, struct lksu_file_table, node)
+
+#define lksu_node_to_uid(ptr) \
+    rb_entry(ptr, struct lksu_uid_table, node)
+
+extern struct rb_root lksu_global_file;
+extern rwlock_t lksu_gfile_lock;
+
+extern struct rb_root lksu_global_uid;
+extern rwlock_t lksu_guid_lock;
 
 extern bool
 lksu_table_gfile_check(const char *name);

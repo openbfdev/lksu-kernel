@@ -11,6 +11,7 @@
 #include "hooks.h"
 #include "tables.h"
 #include "token.h"
+#include "procfs.h"
 
 #include <linux/module.h>
 #include <linux/printk.h>
@@ -44,8 +45,16 @@ lksu_init(void)
         goto free_hidden;
     }
 
+    retval = lksu_procfs_init();
+    if (retval) {
+        pr_crit("failed to init procfs: %d\n", retval);
+        goto free_hooks;
+    }
+
     return 0;
 
+free_hooks:
+    lksu_hooks_exit();
 free_hidden:
     lksu_hidden_exit();
 free_tables:
@@ -58,6 +67,7 @@ free_token:
 static __exit void
 lksu_exit(void)
 {
+    lksu_procfs_exit();
     lksu_hooks_exit();
     lksu_hidden_exit();
     lksu_tables_exit();

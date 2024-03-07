@@ -60,7 +60,7 @@ lsm_hooks[] = {
 };
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0)
-const struct lsm_id
+static const struct lsm_id
 lksu_lsmid = {
 	.name = "lksu",
 	.id = LKSU_LSM_ID,
